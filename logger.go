@@ -28,6 +28,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"runtime"
 	"sync"
 )
 
@@ -305,7 +306,9 @@ func (cLogger *commonLogger) log(level LogLevel, message fmt.Stringer, stackCall
 func (cLogger *commonLogger) processLogMsg(level LogLevel, message fmt.Stringer, context LogContextInterface) {
 	defer func() {
 		if err := recover(); err != nil {
-			reportInternalError(fmt.Errorf("recovered from panic during message processing: %s", err))
+			buffer := make([]byte, 8*1024)
+			n := runtime.Stack(buffer, false)
+			reportInternalError(fmt.Errorf("recovered from panic during message processing: %s, traceback: %s", err, string(buffer[:n])))
 		}
 	}()
 	if cLogger.config.IsAllowed(level, context) {
