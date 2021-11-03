@@ -26,6 +26,7 @@ package seelog
 
 import (
 	"errors"
+	"fmt"
 	"time"
 )
 
@@ -56,6 +57,12 @@ func NewAsyncTimerLogger(config *logConfig, interval time.Duration) (*asyncTimer
 func (asnTimerLogger *asyncTimerLogger) processItem() (closed bool) {
 	asnTimerLogger.queueHasElements.L.Lock()
 	defer asnTimerLogger.queueHasElements.L.Unlock()
+
+	defer func() {
+		if err := recover(); err != nil {
+			reportInternalError(fmt.Errorf("recovered from panic during message processing: %v", err))
+		}
+	}()
 
 	for asnTimerLogger.msgQueue.Len() == 0 && !asnTimerLogger.Closed() {
 		asnTimerLogger.queueHasElements.Wait()
